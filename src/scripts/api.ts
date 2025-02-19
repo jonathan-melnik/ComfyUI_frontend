@@ -158,17 +158,21 @@ export class ComfyApi extends EventTarget {
    * The current user id.
    */
   user: string
+
   socket: WebSocket | null = null
 
   reportedUnknownMessageTypes = new Set<string>()
+
+  loginPromise: Promise<any>
 
   constructor() {
     super()
     this.user = ''
     this.api_host = location.host
     this.api_base = location.pathname.split('/').slice(0, -1).join('/')
-    console.log('Running on', this.api_host)
     this.initialClientId = sessionStorage.getItem('clientId')
+
+    this.loginPromise = this.login()
   }
 
   internalURL(route: string): string {
@@ -183,7 +187,30 @@ export class ComfyApi extends EventTarget {
     return this.api_base + route
   }
 
-  fetchApi(route: string, options?: RequestInit) {
+  /**
+   * Sends a login request to the backend.
+   * The login endpoint (e.g. /login) should set/reset the session cookie.
+   */
+  async login(): Promise<any> {
+    const floyoUserId = import.meta.env.VITE_FLOYO_USER_ID as string
+    const loginUrl = this.apiURL('/login')
+    console.log('Logging in as', loginUrl)
+    const response = await fetch(loginUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: floyoUserId })
+    })
+    if (!response.ok) {
+      throw new Error('Login failed')
+    }
+    const data = await response.json()
+    console.log('Logged in as', floyoUserId, data)
+    return data
+  }
+
+  async fetchApi(route: string, options?: RequestInit) {
+    await this.loginPromise
+
     if (!options) {
       options = {}
     }
@@ -278,6 +305,7 @@ export class ComfyApi extends EventTarget {
     if (existingSession) {
       existingSession = '?clientId=' + existingSession
     }
+
     this.socket = new WebSocket(
       `ws${window.location.protocol === 'https:' ? 's' : ''}://${this.api_host}${this.api_base}/ws${existingSession}`
     )

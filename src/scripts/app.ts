@@ -970,6 +970,9 @@ export class ComfyApp {
     this.canvasEl = canvasEl
     this.resizeCanvas()
 
+    // Ensure we are logged in before proceeding with further API calls.
+    await this.api.loginPromise
+
     await useWorkspaceStore().workflow.syncWorkflows()
     await useExtensionService().loadExtensions()
 
