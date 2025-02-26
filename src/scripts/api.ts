@@ -192,19 +192,31 @@ export class ComfyApi extends EventTarget {
    * The login endpoint (e.g. /login) should set/reset the session cookie.
    */
   async login(): Promise<any> {
-    const floyoUserId = import.meta.env.VITE_FLOYO_USER_ID as string
+    // Get userId from URL parameters
+    const urlParams = new URLSearchParams(window.location.search)
+    const userId = urlParams.get('userId') || import.meta.env.VITE_FLOYO_USER_ID
+    console.log('userId', userId)
+
+    if (!userId) {
+      throw new Error(
+        'No userId provided in URL params or environment variables'
+      )
+    }
+
     const loginUrl = this.apiURL('/login')
     console.log('Logging in as', loginUrl)
     const response = await fetch(loginUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: floyoUserId })
+      body: JSON.stringify({ user: userId })
     })
+
     if (!response.ok) {
       throw new Error('Login failed')
     }
+
     const data = await response.json()
-    console.log('Logged in as', floyoUserId, data)
+    console.log('Logged in as', userId, data)
     return data
   }
 
