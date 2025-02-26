@@ -146,6 +146,7 @@ export class ComfyApi extends EventTarget {
   #registered = new Set()
   api_host: string
   api_base: string
+  api_ws: string
   /**
    * The client id from the initial session storage.
    */
@@ -168,23 +169,35 @@ export class ComfyApi extends EventTarget {
   constructor() {
     super()
     this.user = ''
-    this.api_host = location.host
-    this.api_base = location.pathname.split('/').slice(0, -1).join('/')
+    if (import.meta.env.VITE_API_URL) {
+      const parsedUrl = new URL(import.meta.env.VITE_API_URL)
+      this.api_host = parsedUrl.host // e.g. "3.236.193.193:3000"
+      this.api_base = parsedUrl.origin
+      this.api_ws = this.api_host
+    } else {
+      this.api_host = location.host
+      this.api_base = location.pathname.split('/').slice(0, -1).join('/')
+      this.api_ws = `${this.api_host}${this.api_base}`
+    }
+    console.log('api_host', this.api_host)
+    console.log('api_base', this.api_base)
+    console.log('api_ws', this.api_ws)
+
     this.initialClientId = sessionStorage.getItem('clientId')
 
     this.loginPromise = this.login()
   }
 
   internalURL(route: string): string {
-    return this.api_base + '/internal' + route
+    return `${this.api_base}/internal${route}`
   }
 
   apiURL(route: string): string {
-    return this.api_base + '/api' + route
+    return `${this.api_base}/api${route}`
   }
 
   fileURL(route: string): string {
-    return this.api_base + route
+    return `${this.api_base}${route}`
   }
 
   /**
@@ -319,7 +332,7 @@ export class ComfyApi extends EventTarget {
     }
 
     this.socket = new WebSocket(
-      `ws${window.location.protocol === 'https:' ? 's' : ''}://${this.api_host}${this.api_base}/ws${existingSession}`
+      `ws${window.location.protocol === 'https:' ? 's' : ''}://${this.api_ws}/ws${existingSession}`
     )
     this.socket.binaryType = 'arraybuffer'
 
