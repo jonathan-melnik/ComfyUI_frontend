@@ -199,7 +199,7 @@ export class ComfyApi extends EventTarget {
 
     if (!userId) {
       throw new Error(
-        'No userId provided in URL params or environment variables'
+        'No userId provided in URL params or environment variables!'
       )
     }
 
