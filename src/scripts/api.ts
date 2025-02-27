@@ -1,5 +1,3 @@
-import axios from 'axios'
-
 import type {
   ComfyNodeDef,
   EmbeddingsResponse,
@@ -27,6 +25,8 @@ import type {
 } from '@/types/apiTypes'
 import { validateComfyNodeDef } from '@/types/apiTypes'
 import type { ComfyWorkflowJSON, NodeId } from '@/types/comfyWorkflow'
+
+import floyo from './floyo'
 
 interface QueuePromptRequestBody {
   client_id: string
@@ -150,11 +150,11 @@ export class ComfyApi extends EventTarget {
   /**
    * The client id from the initial session storage.
    */
-  initialClientId: string | null
+  initialClientId: string | null | undefined
   /**
    * The current client id from websocket status updates.
    */
-  clientId?: string
+  clientId: string | null | undefined
   /**
    * The current user id.
    */
@@ -179,13 +179,13 @@ export class ComfyApi extends EventTarget {
       this.api_base = location.pathname.split('/').slice(0, -1).join('/')
       this.api_ws = `${this.api_host}${this.api_base}`
     }
-    console.log('api_host', this.api_host)
-    console.log('api_base', this.api_base)
-    console.log('api_ws', this.api_ws)
 
     this.initialClientId = sessionStorage.getItem('clientId')
 
-    this.loginPromise = this.login()
+    this.clientId = this.initialClientId
+
+    floyo.initialize()
+    this.loginPromise = floyo.login(this.apiURL('/login'))
   }
 
   internalURL(route: string): string {
@@ -198,39 +198,6 @@ export class ComfyApi extends EventTarget {
 
   fileURL(route: string): string {
     return `${this.api_base}${route}`
-  }
-
-  /**
-   * Sends a login request to the backend.
-   * The login endpoint (e.g. /login) should set/reset the session cookie.
-   */
-  async login(): Promise<any> {
-    // Get userId from URL parameters
-    const urlParams = new URLSearchParams(window.location.search)
-    const userId = urlParams.get('userId') || import.meta.env.VITE_FLOYO_USER_ID
-    console.log('userId', userId)
-
-    if (!userId) {
-      throw new Error(
-        'No userId provided in URL params or environment variables!'
-      )
-    }
-
-    const loginUrl = this.apiURL('/login')
-    console.log('Logging in as', loginUrl)
-    const response = await fetch(loginUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: userId })
-    })
-
-    if (!response.ok) {
-      throw new Error('Login failed')
-    }
-
-    const data = await response.json()
-    console.log('Logged in as', userId, data)
-    return data
   }
 
   async fetchApi(route: string, options?: RequestInit) {
@@ -246,13 +213,12 @@ export class ComfyApi extends EventTarget {
       options.cache = 'no-cache'
     }
 
-    if (Array.isArray(options.headers)) {
-      options.headers.push(['Comfy-User', this.user])
-    } else if (options.headers instanceof Headers) {
-      options.headers.set('Comfy-User', this.user)
-    } else {
-      options.headers['Comfy-User'] = this.user
-    }
+    // Normalize headers to Headers object and add Client-Id
+    const headers = new Headers(options.headers)
+    headers.set('Comfy-User', this.user)
+    headers.set('X-Floyo-User-Id', floyo.userId || '')
+    options.headers = headers
+
     return fetch(this.apiURL(route), options)
   }
 
@@ -913,22 +879,22 @@ export class ComfyApi extends EventTarget {
   }
 
   async getLogs(): Promise<string> {
-    return (await axios.get(this.internalURL('/logs'))).data
+    return (await floyo.axios.get(this.internalURL('/logs'))).data
   }
 
   async getRawLogs(): Promise<LogsRawResponse> {
-    return (await axios.get(this.internalURL('/logs/raw'))).data
+    return (await floyo.axios.get(this.internalURL('/logs/raw'))).data
   }
 
   async subscribeLogs(enabled: boolean): Promise<void> {
-    return await axios.patch(this.internalURL('/logs/subscribe'), {
+    return await floyo.axios.patch(this.internalURL('/logs/subscribe'), {
       enabled,
       clientId: this.clientId
     })
   }
 
   async getFolderPaths(): Promise<Record<string, string[]>> {
-    return (await axios.get(this.internalURL('/folder_paths'))).data
+    return (await floyo.axios.get(this.internalURL('/folder_paths'))).data
   }
 
   /**
@@ -937,7 +903,7 @@ export class ComfyApi extends EventTarget {
    * @returns The custom nodes i18n data
    */
   async getCustomNodesI18n(): Promise<Record<string, any>> {
-    return (await axios.get(this.apiURL('/i18n'))).data
+    return (await floyo.axios.get(this.apiURL('/i18n'))).data
   }
 }
 

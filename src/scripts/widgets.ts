@@ -17,6 +17,7 @@ import { InputSpec } from '@/types/apiTypes'
 import { api } from './api'
 import type { ComfyApp } from './app'
 import './domWidget'
+import floyo from './floyo'
 
 export type ComfyWidgetConstructor = (
   node: LGraphNode,
@@ -599,10 +600,18 @@ export const ComfyWidgets: Record<string, ComfyWidgetConstructor> = {
         subfolder = name.substring(0, folder_separator)
         name = name.substring(folder_separator + 1)
       }
-      img.src = api.apiURL(
-        `/view?filename=${encodeURIComponent(name)}&type=input&subfolder=${subfolder}${app.getPreviewFormatParam()}${app.getRandParam()}`
-      )
-      node.setSizeForImage?.()
+
+      try {
+        const imgUrl = api.apiURL(
+          `/view?filename=${encodeURIComponent(name)}&type=input&subfolder=${subfolder}${app.getPreviewFormatParam()}${app.getRandParam()}`
+        )
+        floyo.loadImage(imgUrl).then((blobUrl) => {
+          img.src = blobUrl || ''
+          node.setSizeForImage?.()
+        })
+      } catch (error) {
+        console.error('Error loading image', error)
+      }
     }
 
     var default_value = imageWidget.value

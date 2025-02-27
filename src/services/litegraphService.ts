@@ -12,6 +12,7 @@ import { IBaseWidget, IWidget } from '@comfyorg/litegraph/dist/types/widgets'
 import { st } from '@/i18n'
 import { api } from '@/scripts/api'
 import { ANIM_PREVIEW_WIDGET, ComfyApp, app } from '@/scripts/app'
+import floyo from '@/scripts/floyo'
 import { $el } from '@/scripts/ui'
 import { calculateImageGrid, createImageHost } from '@/scripts/ui/imagePreview'
 import { useToastStore } from '@/stores/toastStore'
@@ -435,11 +436,19 @@ export const useLitegraphService = () => {
         if (imgURLs.length > 0) {
           Promise.all(
             imgURLs.flat().map((src) => {
-              return new Promise<HTMLImageElement | null>((r) => {
+              return new Promise<HTMLImageElement | null>((resolve) => {
                 const img = new Image()
-                img.onload = () => r(img)
-                img.onerror = () => r(null)
-                img.src = src
+                img.onload = () => resolve(img)
+                img.onerror = () => resolve(null)
+                floyo
+                  .loadImage(src)
+                  .then((blobUrl) => {
+                    img.src = blobUrl
+                  })
+                  .catch((error) => {
+                    console.error('Error loading image', error)
+                    resolve(null) // Resolve with null if loading fails
+                  })
               })
             })
           ).then((imgs) => {
