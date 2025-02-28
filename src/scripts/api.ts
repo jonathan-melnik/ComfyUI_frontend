@@ -217,7 +217,8 @@ export class ComfyApi extends EventTarget {
     const headers = new Headers(options.headers)
     headers.set('Comfy-User', this.user)
     headers.set('X-Floyo-User-Id', floyo.userId || '')
-    headers.set('ngrok-skip-browser-warning', 'hello world')
+
+    // Add the headers back to options
     options.headers = headers
 
     return fetch(this.apiURL(route), options)
