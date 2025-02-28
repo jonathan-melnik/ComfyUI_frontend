@@ -9,6 +9,8 @@ const floyo = {
     const urlParams = new URLSearchParams(window.location.search)
     const userId = urlParams.get('userId') || import.meta.env.VITE_FLOYO_USER_ID
     this.axios.defaults.headers.common['X-Floyo-User-Id'] = userId
+    this.axios.defaults.headers.common['ngrok-skip-browser-warning'] =
+      'hello world'
   },
 
   /**
