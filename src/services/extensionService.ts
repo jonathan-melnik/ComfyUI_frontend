@@ -26,7 +26,7 @@ export const useExtensionService = () => {
     )
 
     const extensions = await api.getExtensions()
-
+    console.log('Extensions', extensions)
     // Need to load core extensions first as some custom extensions
     // may depend on them.
     await import('../extensions/core/index')
@@ -37,6 +37,7 @@ export const useExtensionService = () => {
         .map(async (ext) => {
           try {
             //await import(/* @vite-ignore */ api.fileURL(ext))
+            console.log('Loading extension', ext)
             await floyo.loadModuleWithAuth(api.fileURL(ext))
           } catch (error) {
             console.error('Error loading extension', ext, error)
