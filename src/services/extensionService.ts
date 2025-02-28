@@ -37,7 +37,7 @@ export const useExtensionService = () => {
         .map(async (ext) => {
           try {
             //await import(/* @vite-ignore */ api.fileURL(ext))
-            console.log('Loading extension', ext)
+            console.log('Loading extension!', ext)
             await floyo.loadModuleWithAuth(api.fileURL(ext))
           } catch (error) {
             console.error('Error loading extension', ext, error)
