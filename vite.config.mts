@@ -5,6 +5,7 @@ import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import Components from 'unplugin-vue-components/vite'
 import { Plugin, defineConfig } from 'vite'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
 import type { UserConfigExport } from 'vitest/config'
 
 dotenv.config()
@@ -148,6 +149,10 @@ export default defineConfig({
       dirs: ['src/components', 'src/layout', 'src/views'],
       deep: true,
       extensions: ['vue']
+    }),
+
+    viteStaticCopy({
+      targets: [{ src: 'custom_nodes/*', dest: 'extensions' }]
     })
   ],
 
@@ -192,6 +197,10 @@ export default defineConfig({
   },
 
   optimizeDeps: {
-    exclude: ['@comfyorg/litegraph', '@comfyorg/comfyui-electron-types']
+    exclude: [
+      '@comfyorg/litegraph',
+      '@comfyorg/comfyui-electron-types',
+      'custom_nodes/*'
+    ]
   }
 }) as UserConfigExport
