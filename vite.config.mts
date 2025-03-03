@@ -152,7 +152,10 @@ export default defineConfig({
     }),
 
     viteStaticCopy({
-      targets: [{ src: 'custom_nodes/*', dest: 'extensions' }]
+      targets: [
+        { src: 'custom_nodes/extensions/*', dest: 'extensions' },
+        { src: 'custom_nodes/root/*', dest: '.' }
+      ]
     })
   ],
 
