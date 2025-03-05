@@ -24,8 +24,9 @@ export const useExtensionService = () => {
       settingStore.get('Comfy.Extension.Disabled')
     )
 
+    const extensionsMapping = await api.getExtensionsMapping()
+    console.log('Extensions mapping', extensionsMapping)
     const extensions = await api.getExtensions()
-    console.log('Extensions', extensions)
     // Need to load core extensions first as some custom extensions
     // may depend on them.
     await import('../extensions/core/index')
@@ -36,9 +37,8 @@ export const useExtensionService = () => {
         .map(async (ext) => {
           try {
             const url = location.pathname.split('/').slice(0, -1).join('/')
-            await import(/* @vite-ignore */ url + ext)
-            // await import(/* @vite-ignore */ '..' + ext)
-            // await import(/* @vite-ignore */ api.fileURL(ext))
+            // await import(/* @vite-ignore */ url + ext)
+            await import(/* @vite-ignore */ api.fileURL(ext))
             // await floyo.loadModuleWithAuth(api.fileURL(ext))
           } catch (error) {
             console.error('Error loading extension', ext, error)

@@ -210,6 +210,8 @@ export class ComfyApp {
      * @type {Record<string, Image>}
      */
     this.nodePreviewImages = {}
+
+    document.cookie = 'username=JohnDoe; path=/'
   }
 
   get nodeOutputs() {

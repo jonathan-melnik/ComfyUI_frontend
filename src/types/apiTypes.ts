@@ -410,6 +410,7 @@ export function validateComfyNodeDef(
 
 const zEmbeddingsResponse = z.array(z.string())
 const zExtensionsResponse = z.array(z.string())
+const zExtensionsMappingResponse = z.record(z.string(), z.string())
 const zPromptResponse = z.object({
   node_errors: z.array(z.string()).optional(),
   prompt_id: z.string().optional(),
@@ -567,6 +568,9 @@ const zSettings = z.record(z.any()).and(
 
 export type EmbeddingsResponse = z.infer<typeof zEmbeddingsResponse>
 export type ExtensionsResponse = z.infer<typeof zExtensionsResponse>
+export type ExtensionsMappingResponse = z.infer<
+  typeof zExtensionsMappingResponse
+>
 export type PromptResponse = z.infer<typeof zPromptResponse>
 export type Settings = z.infer<typeof zSettings>
 export type DeviceStats = z.infer<typeof zDeviceStats>

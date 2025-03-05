@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ComfyUI with File Browser</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+
+      .container {
+        display: flex;
+        height: 100vh;
+        width: 100%;
+      }
+
+      .comfyui-container {
+        flex: 3;
+        height: 100%;
+        border-right: 1px solid #ccc;
+        transition: all 0.3s ease;
+      }
+
+      .file-browser-container {
+        flex: 0 0 25%;
+        width: 25%;
+        height: 100%;
+        overflow-y: auto;
+        background-color: #f5f5f5;
+        position: relative;
+        transition: width 0.3s ease;
+      }
+
+      /* When collapsed, shrink width to 40px */
+      .file-browser-container.collapsed {
+        flex: 0 0 40px;
+        width: 40px;
+      }
+
+      /* Hide the file directory panel content when collapsed */
+      .file-browser-container.collapsed > file-directory-panel {
+        display: none;
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      /* Toggle button always inside the file browser panel */
+      #toggle-btn {
+        position: absolute;
+        top: 0px;
+        right: 0px;
+        z-index: 100;
+        font-size: 25px;
+        cursor: pointer;
+        background-color: #007bff;
+        border: none;
+        color: #fff;
+        padding: 5px;
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
+      }
+
+      /* Responsive adjustment for smaller screens */
+      @media (max-width: 1024px) {
+        .container {
+          flex-direction: column;
+        }
+
+        .comfyui-container,
+        .file-browser-container {
+          flex: none;
+        }
+
+        .comfyui-container {
+          height: 70vh;
+        }
+
+        .file-browser-container {
+          height: 30vh;
+          width: 100%;
+          transition: height 0.3s ease;
+        }
+
+        .file-browser-container.collapsed {
+          height: 40px;
+        }
+
+        /* Adjust toggle button for column layout */
+        #toggle-btn {
+          top: 50%;
+          left: 10px;
+          transform: translateY(-50%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="comfyui-container">
+        <!-- Replace with your actual ComfyUI URL -->
+        <iframe
+          src="https://comfy-ui-frontend-jon-temp.vercel.app/"
+          id="comfyui-frame"
+          allow="clipboard-read; clipboard-write"
+        ></iframe>
+      </div>
+      <div class="file-browser-container" id="file-browser">
+        <!-- Toggle button placed inside the panel -->
+        <button id="toggle-btn">»</button>
+      </div>
+    </div>
+
+    <script>
+      // File Directory Component
+      class FileDirectoryPanel extends HTMLElement {
+        constructor() {
+          super()
+          this.attachShadow({ mode: 'open' })
+
+          // Initial folder structure - can be expanded later
+          this.folders = [
+            { id: 'output', name: 'Output', source: 'cloudinary' },
+            { id: 'inputs', name: 'Input', source: 'cloudinary' }
+          ]
+
+          this.currentFolder = 'output'
+          this.files = []
+
+          // Cloudinary configuration - replace with your actual credentials
+          this.cloudinaryConfig = {
+            cloudName: 'your-cloud-name',
+            apiKey: 'your-api-key',
+            folder: 'comfyui-outputs'
+          }
+
+          this.render()
+          this.loadFiles(this.currentFolder)
+        }
+
+        connectedCallback() {
+          const folderLinks = this.shadowRoot.querySelectorAll('.folder-item')
+          folderLinks.forEach((link) => {
+            link.addEventListener('click', (e) => {
+              e.preventDefault()
+              this.currentFolder = e.target.dataset.folderId
+              this.loadFiles(this.currentFolder)
+              this.highlightCurrentFolder()
+            })
+          })
+        }
+
+        render() {
+          this.shadowRoot.innerHTML = `
+          <style>
+            :host {
+              display: block;
+              font-family: Arial, sans-serif;
+              color: #333;
+              height: 100%;
+            }
+            
+            .file-panel {
+              display: flex;
+              flex-direction: column;
+              height: 100%;
+            }
+            
+            .folder-list {
+              background: #e0e0e0;
+              padding: 10px;
+              display: flex;
+              overflow-x: auto;
+              border-bottom: 1px solid #ccc;
+            }
+            
+            .folder-item {
+              padding: 8px 12px;
+              text-decoration: none;
+              color: #333;
+              border-radius: 4px;
+              margin-right: 5px;
+              cursor: pointer;
+              white-space: nowrap;
+            }
+            
+            .folder-item:hover {
+              background: #d0d0d0;
+            }
+            
+            .folder-item.active {
+              background: #007bff;
+              color: white;
+            }
+            
+            .file-list {
+              padding: 15px;
+              overflow-y: auto;
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+              grid-gap: 15px;
+            }
+            
+            .file-item {
+              background: white;
+              border-radius: 4px;
+              overflow: hidden;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+              cursor: pointer;
+              transition: transform 0.2s;
+            }
+            
+            .file-item:hover {
+              transform: translateY(-3px);
+              box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            }
+            
+            .thumbnail {
+              width: 100%;
+              height: 100px;
+              background-size: cover;
+              background-position: center;
+              background-color: #eee;
+            }
+            
+            .file-name {
+              padding: 8px;
+              font-size: 12px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            
+            .panel-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 10px 15px;
+              background: #007bff;
+              color: white;
+            }
+            
+            .loading {
+              text-align: center;
+              padding: 20px;
+              grid-column: 1 / -1;
+            }
+            
+            .error-message {
+              color: #e74c3c;
+              text-align: center;
+              padding: 20px;
+              grid-column: 1 / -1;
+            }
+          </style>
+          
+          <div class="file-panel">
+            <div class="panel-header">
+              <h3>File Browser</h3>
+            </div>
+            
+            <div class="folder-list">
+              ${this.folders
+                .map(
+                  (folder) => `
+                <a class="folder-item ${folder.id === this.currentFolder ? 'active' : ''}" 
+                   data-folder-id="${folder.id}">
+                  ${folder.name}
+                </a>
+              `
+                )
+                .join('')}
+            </div>
+            
+            <div class="file-list" id="fileContainer">
+              <div class="loading">Loading files...</div>
+            </div>
+          </div>
+        `
+        }
+
+        highlightCurrentFolder() {
+          const folderLinks = this.shadowRoot.querySelectorAll('.folder-item')
+          folderLinks.forEach((link) => {
+            if (link.dataset.folderId === this.currentFolder) {
+              link.classList.add('active')
+            } else {
+              link.classList.remove('active')
+            }
+          })
+        }
+
+        async loadFiles(folderId) {
+          const fileContainer = this.shadowRoot.getElementById('fileContainer')
+          fileContainer.innerHTML =
+            '<div class="loading">Loading files...</div>'
+
+          try {
+            const folder = this.folders.find((f) => f.id === folderId)
+
+            if (folder.source === 'cloudinary') {
+              await this.loadFromCloudinary(folder.id)
+            } else {
+              fileContainer.innerHTML =
+                '<div class="error-message">Source not implemented</div>'
+            }
+          } catch (error) {
+            console.error('Error loading files:', error)
+            fileContainer.innerHTML = `<div class="error-message">Error loading files: ${error.message}</div>`
+          }
+        }
+
+        async loadFromCloudinary(folderId) {
+          const fileContainer = this.shadowRoot.getElementById('fileContainer')
+          fileContainer.innerHTML =
+            '<div class="loading">Loading files...</div>'
+
+          try {
+            const files = await this.fetchCloudinaryFiles(folderId)
+
+            if (files.length === 0) {
+              fileContainer.innerHTML =
+                '<div class="error-message">No files found</div>'
+              return
+            }
+
+            fileContainer.innerHTML = files
+              .map(
+                (file) => `
+      <div class="file-item" data-file-id="${file.id}">
+        <div class="thumbnail" style="background-image: url('${file.thumbnail}')"></div>
+        <div class="file-name">${file.name}</div>
+      </div>
+    `
+              )
+              .join('')
+
+            const fileItems = this.shadowRoot.querySelectorAll('.file-item')
+            fileItems.forEach((item) => {
+              item.addEventListener('click', () => {
+                this.handleFileClick(file)
+              })
+            })
+          } catch (error) {
+            console.error('Error loading from Cloudinary:', error)
+            fileContainer.innerHTML = `<div class="error-message">Error loading from Cloudinary: ${error.message}</div>`
+          }
+        }
+
+        async fetchCloudinaryFiles(folderId) {
+          try {
+            const response = await fetch(
+              `https://floyo-api.ngrok.dev/api/cloudinary/output`,
+              {
+                headers: {
+                  'x-floyo-user-id': 'jon'
+                }
+              }
+            )
+            if (!response.ok) {
+              throw new Error('Network response was not ok')
+            }
+            const files = await response.json()
+            return files.map((file) => ({
+              id: file.public_id,
+              name: file.public_id.split('/').pop(),
+              thumbnail: file.secure_url,
+              fullUrl: file.secure_url
+            }))
+          } catch (error) {
+            console.error('Error fetching Cloudinary files:', error)
+            return []
+          }
+        }
+
+        handleFileClick(file) {
+          const comfyuiFrame = document.getElementById('comfyui-frame')
+          if (comfyuiFrame && comfyuiFrame.contentWindow) {
+            comfyuiFrame.contentWindow.postMessage(
+              {
+                type: 'file-selected',
+                file: file
+              },
+              '*'
+            )
+          }
+          console.log('File selected:', file)
+        }
+      }
+
+      customElements.define('file-directory-panel', FileDirectoryPanel)
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const fileBrowserContainer = document.getElementById('file-browser')
+
+        // Append the file directory panel
+        const panel = document.createElement('file-directory-panel')
+        panel.style.height = '100%'
+        fileBrowserContainer.appendChild(panel)
+
+        // Toggle button logic
+        const toggleBtn = document.getElementById('toggle-btn')
+        toggleBtn.addEventListener('click', () => {
+          fileBrowserContainer.classList.toggle('collapsed')
+          if (fileBrowserContainer.classList.contains('collapsed')) {
+            toggleBtn.textContent = '«'
+          } else {
+            toggleBtn.textContent = '»'
+          }
+        })
+      })
+
+      window.addEventListener('message', (event) => {
+        console.log('Message from ComfyUI:', event.data)
+      })
+    </script>
+  </body>
+</html>

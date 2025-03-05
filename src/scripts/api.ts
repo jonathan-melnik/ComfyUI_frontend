@@ -8,6 +8,7 @@ import type {
   ExecutionInterruptedWsMessage,
   ExecutionStartWsMessage,
   ExecutionSuccessWsMessage,
+  ExtensionsMappingResponse,
   ExtensionsResponse,
   HistoryTaskItem,
   LogsRawResponse,
@@ -419,6 +420,13 @@ export class ComfyApi extends EventTarget {
    */
   async getExtensions(): Promise<ExtensionsResponse> {
     const resp = await this.fetchApi('/extensions', { cache: 'no-store' })
+    return await resp.json()
+  }
+
+  async getExtensionsMapping(): Promise<ExtensionsMappingResponse> {
+    const resp = await this.fetchApi('/extensions_mapping', {
+      cache: 'no-store'
+    })
     return await resp.json()
   }
 
