@@ -165,8 +165,6 @@ export class ComfyApi extends EventTarget {
 
   reportedUnknownMessageTypes = new Set<string>()
 
-  loginPromise: Promise<any>
-
   constructor() {
     super()
     this.user = ''
@@ -184,9 +182,6 @@ export class ComfyApi extends EventTarget {
     this.initialClientId = sessionStorage.getItem('clientId')
 
     this.clientId = this.initialClientId
-
-    floyo.initialize()
-    this.loginPromise = floyo.login(this.apiURL('/login'))
   }
 
   internalURL(route: string): string {
@@ -198,12 +193,12 @@ export class ComfyApi extends EventTarget {
   }
 
   fileURL(route: string): string {
+    // const file_url_base = window.comfyFileUrlBase || this.api_base
+    // return `${file_url_base}${route}`
     return `${this.api_base}${route}`
   }
 
   async fetchApi(route: string, options?: RequestInit) {
-    await this.loginPromise
-
     if (!options) {
       options = {}
     }
@@ -217,7 +212,6 @@ export class ComfyApi extends EventTarget {
     // Normalize headers to Headers object and add Client-Id
     const headers = new Headers(options.headers)
     headers.set('Comfy-User', this.user)
-    headers.set('X-Floyo-User-Id', floyo.userId || '')
 
     // Add the headers back to options
     options.headers = headers

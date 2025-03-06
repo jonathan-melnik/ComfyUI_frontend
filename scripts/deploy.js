@@ -1,16 +1,28 @@
+/* global process */
 import { config } from 'dotenv'
-import { copy } from 'fs-extra'
+import { copy, pathExists, remove } from 'fs-extra'
 
 config()
 
 const sourceDir = './dist'
-// eslint-disable-next-line no-undef
 const targetDir = process.env.DEPLOY_COMFYUI_DIR
 
-copy(sourceDir, targetDir)
-  .then(() => {
+async function deploy() {
+  try {
+    // Check if target directory exists and remove it
+    const exists = await pathExists(targetDir)
+    if (exists) {
+      await remove(targetDir)
+      console.log(`Cleaned existing directory: ${targetDir}`)
+    }
+
+    // Copy new files
+    await copy(sourceDir, targetDir)
     console.log(`Directory copied successfully! ${sourceDir} -> ${targetDir}`)
-  })
-  .catch((err) => {
-    console.error('Error copying directory:', err)
-  })
+  } catch (err) {
+    console.error('Error during deployment:', err)
+    process.exit(1)
+  }
+}
+
+deploy()

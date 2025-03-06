@@ -189,6 +189,7 @@ export class ComfyApp {
     this.vueAppReady = false
     this.ui = new ComfyUI(this)
     this.api = api
+
     this.bodyTop = $el('div.comfyui-body-top', { parent: document.body })
     this.bodyLeft = $el('div.comfyui-body-left', { parent: document.body })
     this.bodyRight = $el('div.comfyui-body-right', { parent: document.body })
@@ -971,9 +972,6 @@ export class ComfyApp {
   async setup(canvasEl: HTMLCanvasElement) {
     this.canvasEl = canvasEl
     this.resizeCanvas()
-
-    // Ensure we are logged in before proceeding with further API calls.
-    await this.api.loginPromise
 
     await useWorkspaceStore().workflow.syncWorkflows()
     await useExtensionService().loadExtensions()
