@@ -10,6 +10,15 @@ import { useWidgetStore } from '@/stores/widgetStore'
 import { useBottomPanelStore } from '@/stores/workspace/bottomPanelStore'
 import type { ComfyExtension } from '@/types/comfy'
 
+const mapping = {
+  'cg-use-everywhere': 'cg-use-everywhere/js',
+  'ComfyUI-Impact-Pack': 'comfyui-impact-pack/js',
+  ComfyUI_essentials: 'ComfyUI_essentials/js',
+  'efficiency-nodes-comfyui': 'efficiency-nodes-comfyui/js',
+  'times-two': 'times-two/web/js',
+  'rgthree-comfy': 'rgthree-comfy/web/comfyui'
+}
+
 export const useExtensionService = () => {
   const extensionStore = useExtensionStore()
   const settingStore = useSettingStore()
@@ -24,20 +33,25 @@ export const useExtensionService = () => {
       settingStore.get('Comfy.Extension.Disabled')
     )
 
-    const extensionsMapping = await api.getExtensionsMapping()
-    console.log('Extensions mapping', extensionsMapping)
     const extensions = await api.getExtensions()
     // Need to load core extensions first as some custom extensions
     // may depend on them.
     await import('../extensions/core/index')
     extensionStore.captureCoreExtensions()
+
     await Promise.all(
       extensions
         .filter((extension) => !extension.includes('extensions/core'))
         .map(async (ext) => {
           try {
-            const url = location.pathname.split('/').slice(0, -1).join('/')
-            await import(/* @vite-ignore */ api.fileURL(ext))
+            let mappedExt = ext.replace('extensions/', 'custom_nodes/')
+            for (const [key, value] of Object.entries(mapping)) {
+              if (mappedExt.includes(key)) {
+                mappedExt = mappedExt.replace(key, value)
+                break
+              }
+            }
+            await import(/* @vite-ignore */ mappedExt)
           } catch (error) {
             console.error('Error loading extension', ext, error)
           }

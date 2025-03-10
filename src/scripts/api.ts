@@ -170,7 +170,7 @@ export class ComfyApi extends EventTarget {
     this.user = ''
     if (import.meta.env.VITE_API_URL) {
       const parsedUrl = new URL(import.meta.env.VITE_API_URL)
-      this.api_host = parsedUrl.host // e.g. "3.236.193.193:3000"
+      this.api_host = parsedUrl.host
       this.api_base = parsedUrl.origin
       this.api_ws = this.api_host
     } else {
@@ -193,9 +193,7 @@ export class ComfyApi extends EventTarget {
   }
 
   fileURL(route: string): string {
-    // const file_url_base = window.comfyFileUrlBase || this.api_base
-    // return `${file_url_base}${route}`
-    return `${this.api_base}${route}`
+    return route
   }
 
   async fetchApi(route: string, options?: RequestInit) {

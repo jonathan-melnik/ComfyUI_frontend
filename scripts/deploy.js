@@ -4,7 +4,8 @@ import { copy, pathExists, remove } from 'fs-extra'
 
 config()
 
-const sourceDir = './dist'
+const distDir = './dist'
+// const customNodesDir = './custom_nodes'
 const targetDir = process.env.DEPLOY_COMFYUI_DIR
 
 async function deploy() {
@@ -17,8 +18,10 @@ async function deploy() {
     }
 
     // Copy new files
-    await copy(sourceDir, targetDir)
-    console.log(`Directory copied successfully! ${sourceDir} -> ${targetDir}`)
+    await copy(distDir, targetDir + '/web')
+    console.log(`Directory copied successfully! ${distDir} -> ${targetDir}`)
+    // await copy(customNodesDir, targetDir + '/custom_nodes')
+    // console.log(`Directory copied successfully! ${customNodesDir} -> ${targetDir}`)
   } catch (err) {
     console.error('Error during deployment:', err)
     process.exit(1)

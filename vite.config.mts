@@ -200,7 +200,9 @@ export default defineConfig({
     exclude: [
       '@comfyorg/litegraph',
       '@comfyorg/comfyui-electron-types',
-      'custom_nodes/*'
+      'custom_nodes/*',
+      'scripts/deploy.js',
+      'scripts/processImports.js'
     ]
   }
 }) as UserConfigExport
