@@ -13,7 +13,7 @@ export default [
       'src/scripts/*',
       'src/extensions/core/*',
       'src/types/vue-shim.d.ts',
-      'custom_nodes/*',
+      'public/custom_nodes/*',
       'scripts/processImports.js',
       'scripts/deploy.js'
     ]

@@ -13,6 +13,7 @@ const readdir = fs.promises.readdir
 const access = fs.promises.access
 
 let rootDir = ''
+let floyo_webapp_path = ''
 
 const mapping = {
   'cg-use-everywhere': 'cg-use-everywhere/js',
@@ -24,7 +25,12 @@ const mapping = {
 }
 
 function isFileICare(filePath) {
-  const filesICare = ['progress_bar', 'base_node_mode_changer', 'comfyui_shim']
+  const filesICare = [
+    'progress_bar',
+    'base_node_mode_changer',
+    'comfyui_shim',
+    'model_info_service'
+  ]
   return filesICare.some((file) => filePath.includes(file))
 }
 
@@ -59,14 +65,14 @@ function rewriteImports(content, filePath) {
     filePath.startsWith('/custom_nodes/rgthree-comfy/web/common') ||
     filePath.startsWith('/custom_nodes/rgthree-comfy/web/link_fixer')
   ) {
-    const before = filePath
+    // const before = filePath
     filePath = filePath.replace('/custom_nodes/rgthree-comfy/web/', '/rgthree/')
-    console.log(
-      '-(common or link_fixer) replacing in',
-      before,
-      'with',
-      filePath
-    )
+    // console.log(
+    //     '-(common or link_fixer) replacing in',
+    //     before,
+    //     'with',
+    //     filePath
+    // )
   }
 
   const importDir = path.dirname(filePath)
@@ -110,11 +116,14 @@ function rewriteImports(content, filePath) {
 
       // Make sure the path starts with a single slash
       let formattedPath = absoluteImportPath
-      if (
-        !absoluteImportPath.startsWith('/') &&
-        !absoluteImportPath.startsWith('http')
-      ) {
-        formattedPath = '/' + absoluteImportPath
+      if (!absoluteImportPath.startsWith('http')) {
+        if (absoluteImportPath.startsWith('/')) {
+          absoluteImportPath = absoluteImportPath.slice(1)
+        }
+        formattedPath = floyo_webapp_path + absoluteImportPath
+        if (!formattedPath.startsWith('/')) {
+          formattedPath = '/' + formattedPath
+        }
       }
 
       return `${importStart}${formattedPath}${importEnd}`
@@ -132,18 +141,6 @@ function parseRgthreeRoute(importPath) {
   const subdir = segments.length ? segments.join('/') + '/' : ''
   const file = importPath.split('/').pop()
   return `/custom_nodes/rgthree-comfy/web/${pathPart}/${subdir}${file}`
-
-  // if (importPath.includes('/rgthree/common')) {
-  //     return importPath.replace('/rgthree/common', '/rgthree-comfy/web/common',)
-  // } else if (importPath.includes('/rgthree/link_fixer')) {
-  //     return importPath.replace('/rgthree/link_fixer', '/rgthree-comfy/web/link_fixer')
-  // } else {
-  //     const pathPart = importPath.split("/")[2];
-  //     const segments = importPath.split("/").slice(3, -1);
-  //     const subdir = segments.length ? segments.join("/") + "/" : "";
-  //     const file = importPath.split("/").pop();
-  //     return `/custom_nodes/rgthree-comfy/web/${pathPart}/${subdir}${file}`;
-  // }
 }
 
 // Function to ensure directory exists
@@ -204,6 +201,7 @@ async function processDirectory(inputDir, outputDir) {
 async function main() {
   const inputDir = process.argv[2]
   const outputDir = process.argv[3]
+  const input_floyo_webapp_path = process.argv[4]
 
   if (!inputDir || !outputDir) {
     console.error(
@@ -215,8 +213,17 @@ async function main() {
     process.exit(1)
   }
 
+  if (input_floyo_webapp_path) {
+    console.log('input_floyo_webapp_path', input_floyo_webapp_path)
+    floyo_webapp_path = input_floyo_webapp_path.endsWith('/')
+      ? input_floyo_webapp_path
+      : input_floyo_webapp_path + '/'
+    console.log('floyo_webapp_path', floyo_webapp_path)
+  }
+
   try {
-    const absoluteRootDirPath = path.resolve(rootDir)
+    const absoluteRootDirPath = path.resolve(inputDir)
+    console.log('absoluteRootDirPath', absoluteRootDirPath)
     const customNodesAbsolutePath = path.join(
       absoluteRootDirPath,
       'custom_nodes'

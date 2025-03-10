@@ -44,7 +44,10 @@ export const useExtensionService = () => {
         .filter((extension) => !extension.includes('extensions/core'))
         .map(async (ext) => {
           try {
-            let mappedExt = ext.replace('extensions/', 'custom_nodes/')
+            let mappedExt = ext.replace(
+              'extensions/',
+              import.meta.env.VITE_FLOYO_WEBAPP_PATH + 'custom_nodes/'
+            )
             for (const [key, value] of Object.entries(mapping)) {
               if (mappedExt.includes(key)) {
                 mappedExt = mappedExt.replace(key, value)

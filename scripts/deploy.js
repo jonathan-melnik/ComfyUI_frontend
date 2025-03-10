@@ -18,7 +18,7 @@ async function deploy() {
     }
 
     // Copy new files
-    await copy(distDir, targetDir + '/web')
+    await copy(distDir, targetDir)
     console.log(`Directory copied successfully! ${distDir} -> ${targetDir}`)
     // await copy(customNodesDir, targetDir + '/custom_nodes')
     // console.log(`Directory copied successfully! ${customNodesDir} -> ${targetDir}`)

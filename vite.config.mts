@@ -1,11 +1,11 @@
 import vue from '@vitejs/plugin-vue'
+import { spawn } from 'child_process'
 import dotenv from 'dotenv'
 import path from 'path'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import Components from 'unplugin-vue-components/vite'
 import { Plugin, defineConfig } from 'vite'
-import { viteStaticCopy } from 'vite-plugin-static-copy'
 import type { UserConfigExport } from 'vitest/config'
 
 dotenv.config()
@@ -98,6 +98,41 @@ function getModuleName(id: string): string {
 const DEV_SERVER_COMFYUI_URL =
   process.env.DEV_SERVER_COMFYUI_URL || 'http://127.0.0.1:8188'
 
+function processImportsPlugin(): Plugin {
+  return {
+    name: 'process-imports-plugin',
+    closeBundle: async () => {
+      if (IS_DEV) return
+
+      console.log('Running processImports.js...')
+      const projectRoot = process.cwd()
+      const inputDir = path.join(projectRoot, 'dist')
+      const outputDir = path.join(projectRoot, 'dist', 'custom_nodes')
+      const floyo_webapp_path = process.env.VITE_FLOYO_WEBAPP_PATH || ''
+      return new Promise((resolve, reject) => {
+        const process = spawn(
+          'node',
+          ['scripts/processImports.js', inputDir, outputDir, floyo_webapp_path],
+          {
+            stdio: 'inherit',
+            shell: true
+          }
+        )
+
+        process.on('close', (code) => {
+          if (code === 0) {
+            console.log('Successfully processed imports')
+            resolve()
+          } else {
+            console.error(`processImports.js failed with code ${code}`)
+            reject(new Error(`processImports.js failed with code ${code}`))
+          }
+        })
+      })
+    }
+  }
+}
+
 export default defineConfig({
   base: '',
   server: {
@@ -138,6 +173,7 @@ export default defineConfig({
   plugins: [
     vue(),
     comfyAPIPlugin(),
+    processImportsPlugin(),
 
     Icons({
       compiler: 'vue3'
@@ -149,10 +185,6 @@ export default defineConfig({
       dirs: ['src/components', 'src/layout', 'src/views'],
       deep: true,
       extensions: ['vue']
-    }),
-
-    viteStaticCopy({
-      targets: [{ src: 'custom_nodes/*', dest: 'custom_nodes' }]
     })
   ],
 
@@ -200,7 +232,7 @@ export default defineConfig({
     exclude: [
       '@comfyorg/litegraph',
       '@comfyorg/comfyui-electron-types',
-      'custom_nodes/*',
+      'public/custom_nodes/*',
       'scripts/deploy.js',
       'scripts/processImports.js'
     ]
