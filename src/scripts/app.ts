@@ -212,7 +212,43 @@ export class ComfyApp {
      */
     this.nodePreviewImages = {}
 
-    document.cookie = 'username=JohnDoe; path=/'
+    // Register the service worker
+    if ('serviceWorker' in navigator) {
+      // Unregister existing workers (for dev testing)
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration
+            .unregister()
+            .then(() => console.log('Unregistered old SW'))
+        }
+      })
+
+      // Register the new one and configure it
+      navigator.serviceWorker
+        .register('/service-worker.js?v=' + Date.now())
+        .then((registration) => {
+          console.log('Service Worker registered')
+
+          // Wait for the service worker to be ready
+          if (registration.active) {
+            this.configureServiceWorker(registration.active)
+          }
+          registration.addEventListener('activate', (event) => {
+            this.configureServiceWorker(registration.active)
+          })
+        })
+        .catch((err) => console.error('Error:', err))
+    }
+  }
+
+  private configureServiceWorker(serviceWorker: ServiceWorker) {
+    // Send configuration to service worker
+    serviceWorker.postMessage({
+      type: 'CONFIG',
+      websiteUrl: window.location.origin,
+      apiUrl: import.meta.env.VITE_API_URL,
+      customNodesFilesUrl: import.meta.env.VITE_CUSTOM_NODES_FILES_URL
+    })
   }
 
   get nodeOutputs() {
